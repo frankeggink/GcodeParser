@@ -7,7 +7,14 @@
 //getValue kan de x en y waarde uit een string halen
 
 
+#include <SoftwareServo.h>
 
+//servo variables
+
+SoftwareServo servo;
+boolean servoEnabled = true;
+
+//parser variables
 char *strchr_pointer;
 double value;
 int codenum;
@@ -25,6 +32,19 @@ boolean comment_mode = false;
 void setup() 
 {
 	Serial.begin(9600);
+
+	servo.attach(2);
+	servo.write(50);
+
+	if (servoEnabled)
+	{
+		for(int i=0; i<100; i++)
+		{
+			SoftwareServo::refresh();
+			delay(4);
+		}
+	}
+
 }
 
 void loop()
@@ -52,6 +72,10 @@ void loop()
 
 	getSerialCommand();
 	//delay(100);
+	if (servoEnabled)
+	{
+		SoftwareServo::refresh();
+	}
 
 }
 
@@ -119,11 +143,13 @@ void parse(char *command)
 	double yVal;
 	double pVal;
 	double fVal;
+	double sVal;
 
 	boolean hasXVal;
 	boolean hasYVal;
 	boolean hasPVal;
 	boolean hasFVal;
+	boolean hasSVal;
 
 	if (command != NULL) {
 		if (command[0] == 'G') {
@@ -140,6 +166,7 @@ void parse(char *command)
 			hasYVal = getValue('Y', command, &yVal);
 			hasPVal = getValue('P', command, &pVal);
 			hasFVal = getValue('F', command, &fVal);
+
 
 			if(hasXVal) {
 				Serial.print("X-value : ");
@@ -158,7 +185,6 @@ void parse(char *command)
 				Serial.print("F-value : ");
 				Serial.println(fVal);
 			}
-
 
 
 			switch(codenum)
@@ -198,6 +224,14 @@ void parse(char *command)
 			}
 			Serial.println(codenum); 
 
+			hasSVal = getValue('S', command, &sVal);
+
+			if(hasSVal) {
+				Serial.print("S-value : ");
+				Serial.println(sVal);
+			}
+
+
 
 			switch(codenum)
 			{
@@ -205,7 +239,23 @@ void parse(char *command)
 				Serial.println("M18 not implemented");
 				break;
 			case 300: //M300, servo position
-				Serial.println("M300 not implemented");
+				//Serial.println("M300 not implemented");
+				if (hasSVal) {
+					servoEnabled = true;
+				}
+				if (sVal <0.) {
+					sVal = 0;
+				} else if (sVal > 180.) {
+					sVal = 50; //default position
+					servo.write((int)sVal);
+					for (int i=0;i<100;i++) {
+						SoftwareServo::refresh();
+						delay(4);
+					}
+					servoEnabled = false;
+				}
+				servo.write((int)sVal);
+
 				break;
 			case 400: //M400, Reset X-Axix-Stepper settings to new object diameter
 				Serial.println("G400 not implemented");
